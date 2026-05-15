@@ -153,8 +153,12 @@ int main() {
         send(s, (char*)&p, sizeof(Packet), 0);
         recv(s, (char*)&p, sizeof(Packet), 0);
         
-        if (p.statusCode == ST_SUCCESS) printf("\n%s\n%s\n", ICON_SUCCESS, p.data);
-        else printf("\n%s 처리 실패\n", ICON_WARN);
+        if (p.statusCode == ST_SUCCESS) {
+            printf("\n%s\n%s\n", ICON_SUCCESS, p.data);
+        } else {
+            // 서버에서 보낸 실패 원인(p.data)을 함께 출력
+            printf("\n%s 처리 실패: %s\n", ICON_WARN, p.data);
+        }
         wait_enter();
     }
 

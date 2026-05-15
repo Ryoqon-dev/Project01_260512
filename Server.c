@@ -198,12 +198,37 @@ unsigned __stdcall handle_client(void* arg) {                                   
                 break;
             }
             case CMD_ADD: {                                                             // [2]등록 기능(S003)
-                Student* ns = (Student*)malloc(sizeof(Student));                        // 새 학생 노드 할당
-                sscanf(req.data, "%s %s %s %d %f %s %s", ns->name, ns->id, ns->dept, &ns->year, &ns->gpa, ns->email, ns->phone);    // 요청 데이터에서 학생 정보 추출
+                char n[20], id[15], d[30], em[40], ph[15]; int y; float g;
+                sscanf(req.data, "%s %s %s %d %f %s %s", n, id, d, &y, &g, em, ph);
+
+                int exists = 0;
                 EnterCriticalSection(&cs_student);                                      // 학생 리스트에 동시 접근 방지 위해 임계 구역 진입
-                ns->next = student_head; student_head = ns;                             // 새 학생 노드를 학생 리스트의 헤드에 추가
+                
+                // 중복 검사: 이름과 학번이 모두 동일한 학생이 있는지 확인
+                for (Student* c = student_head; c; c = c->next) {
+                    if (!strcmp(c->name, n) && !strcmp(c->id, id)) {
+                        exists = 1;
+                        break;
+                    }
+                }
+
+                if (exists) {
+                    res.statusCode = ST_FAIL;
+                    strcpy(res.data, "이미 등록된 동일한 학생(이름/학번)이 존재합니다.");
+                } else {
+                    // 중복이 없을 때만 메모리 할당 및 추가
+                    Student* ns = (Student*)malloc(sizeof(Student));
+                    strcpy(ns->name, n); strcpy(ns->id, id); strcpy(ns->dept, d);
+                    ns->year = y; ns->gpa = g;
+                    strcpy(ns->email, em); strcpy(ns->phone, ph);
+                    
+                    ns->next = student_head; 
+                    student_head = ns;
+                    
+                    res.statusCode = ST_SUCCESS; 
+                    strcpy(res.data, "학생 등록 완료");                                 // 등록 성공 시 응답 패킷에 성공 상태와 완료 메시지 설정
+                }
                 LeaveCriticalSection(&cs_student);                                      // 임계 구역 해제
-                res.statusCode = ST_SUCCESS; strcpy(res.data, "학생 등록 완료");        // 등록 성공 시 응답 패킷에 성공 상태와 완료 메시지 설정
                 break;
             }
             case CMD_DELETE: {                                                          // [3]삭제 기능(S003)
